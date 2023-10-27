@@ -3,6 +3,7 @@ import functools
 from spyro_parser import SpyroParser
 from util import *
 
+
 class InputGenerator:
     def __init__(self, code):
         # Input code
@@ -13,7 +14,7 @@ class InputGenerator:
 
     def enable_minimize_terms(self):
         self.__minimize_terms = True
-    
+
     def disable_minimize_terms(self):
         self.__minimize_terms = False
 
@@ -37,7 +38,7 @@ class InputGenerator:
         code += '\tboolean out;\n'
         code += '\tobtained_property(' + arguments + ',out);\n'
         code += '\tassert !out;\n'
-        
+
         code += '}\n\n'
 
         return code
@@ -67,7 +68,7 @@ class InputGenerator:
     def __improves_predicate_code(self):
         code = 'harness void improves_predicate() {\n'
         code += self.__template.get_variables_with_hole() + '\n\n'
-        
+
         arguments = self.__template.get_arguments_call()
 
         code += '\tboolean out_1;\n'
@@ -77,7 +78,7 @@ class InputGenerator:
         code += '\tboolean out_2;\n'
         code += '\tobtained_property(' + arguments + ',out_2);\n'
         code += '\tassert !out_2;\n'
-        
+
         code += '}\n\n'
 
         return code
@@ -137,7 +138,7 @@ class InputGenerator:
         code = ''
 
         for i, phi in enumerate(phi_list):
-            code += self.__prev_property_code(i, phi) + '\n\n'      
+            code += self.__prev_property_code(i, phi) + '\n\n'
 
         code += 'void property_conj('
         code += self.__template.get_arguments_defn()
@@ -145,14 +146,15 @@ class InputGenerator:
 
         for i in range(len(phi_list)):
             code += f'\tboolean out_{i};\n'
-            code += f'\tprev_property_{i}(' 
-            code += self.__template.get_arguments_call() 
-            code += f',out_{i});\n\n' 
+            code += f'\tprev_property_{i}('
+            code += self.__template.get_arguments_call()
+            code += f',out_{i});\n\n'
 
         if len(phi_list) == 0:
             code += '\tout = true;\n'
         else:
-            code += '\tout = ' + ' && '.join([f'out_{i}' for i in range(len(phi_list))]) + ';\n'
+            code += '\tout = ' + \
+                ' && '.join([f'out_{i}' for i in range(len(phi_list))]) + ';\n'
         code += '}\n\n'
 
         return code
@@ -163,9 +165,9 @@ class InputGenerator:
         for i, pos_example in enumerate(pos_examples):
             code += '\n'
             code += 'harness void positive_example_{} ()'.format(i)
-            code += ' {\n' + pos_example + '\n}\n\n'   
+            code += ' {\n' + pos_example + '\n}\n\n'
 
-        return code       
+        return code
 
     def __neg_examples_synth(self, neg_must_examples, neg_may_examples):
         code = ''
@@ -180,7 +182,7 @@ class InputGenerator:
         for neg_example in neg_must_examples:
             code += '\n'
             code += 'harness void negative_example_{} ()'.format(i)
-            code += ' {\n' + neg_example + '\n}\n\n' 
+            code += ' {\n' + neg_example + '\n}\n\n'
             i += 1
 
         return code
@@ -192,13 +194,13 @@ class InputGenerator:
         for neg_example in neg_may_examples:
             code += '\n'
             code += 'void negative_example_{} ()'.format(i)
-            code += ' {\n' + neg_example + '\n}\n\n'   
+            code += ' {\n' + neg_example + '\n}\n\n'
             i += 1
 
         for neg_example in neg_must_examples:
             code += '\n'
             code += 'harness void negative_example_{} ()'.format(i)
-            code += ' {\n' + neg_example + '\n}\n\n' 
+            code += ' {\n' + neg_example + '\n}\n\n'
             i += 1
 
         return code
@@ -239,7 +241,7 @@ class InputGenerator:
         elif expr[0] == 'INT' or expr[0] == 'HOLE':
             return dict()
         elif expr[0] == 'VAR' or expr[0] == 'TYPE':
-            return {expr[1] : 1} if expr[1] in cxt else dict()
+            return {expr[1]: 1} if expr[1] in cxt else dict()
         elif expr[0] == 'FCALL':
             dicts = [self.__count_generator_calls(cxt, e) for e in expr[2]]
             return functools.reduce(sum_dict, dicts) if len(dicts) > 0 else dict()
@@ -295,12 +297,12 @@ class InputGenerator:
         code += '\tif (t == 3) { return x < y; }\n'
         code += '\tif (t == 4) { return x > y; }\n'
         code += '\treturn x != y; \n'
-        
+
         code += '}'
 
         return code
 
-    def __expr_to_code(self, cxt, expr, out_type = 'boolean'):
+    def __expr_to_code(self, cxt, expr, out_type='boolean'):
         if expr[0] == 'BINOP':
             cxt1, code1, out1 = self.__expr_to_code(cxt, expr[2])
             cxt2, code2, out2 = self.__expr_to_code(cxt1, expr[3])
@@ -329,6 +331,12 @@ class InputGenerator:
                 code += code_sub
                 args.append(out_sub)
 
+            # added by Xuanyu
+            # if (expr[1].startswith('random')):
+            #     out = f'\t\t{expr[1]}({args_call})\n'
+            #     return (cxt, code, out)
+
+            # el
             if (expr[1] == 'compare'):
                 args_call = ','.join(args)
                 return (cxt, code, f'{expr[1]}({args_call})')
@@ -356,18 +364,18 @@ class InputGenerator:
 
         code = f'generator {typ} {symbol}_gen({arg_defn}) {{\n'
         code += '\tint t = ??;\n'
-        
+
         for n, e in enumerate(exprlist):
             num_calls = self.__count_generator_calls(cxt, e)
             code += self.__subcall_gen(cxt, num_calls_prev, num_calls)
             num_calls_prev = max_dict(num_calls_prev, num_calls)
 
-            cxt_init = {k:0 for k in cxt.keys()}
+            cxt_init = {k: 0 for k in cxt.keys()}
             _, e_code, e_out = self.__expr_to_code(cxt_init, e, typ)
 
             if (n + 1 == len(exprlist)):
                 code += e_code
-                code += f'\treturn {e_out};\n'            
+                code += f'\treturn {e_out};\n'
             else:
                 code += f'\tif (t == {n}) {{\n'
                 code += e_code
@@ -387,8 +395,8 @@ class InputGenerator:
         typ = rule[0]
         exprlist = rule[1]
         bnd = rule[2]
-
-        cxt = {typ:typ for (typ, _, _) in self.__template.get_example_rules()}
+        # print(f'typ: {typ}, exprlist: {exprlist}, bnd: {bnd}')
+        cxt = {typ: typ for (typ, _, _) in self.__template.get_example_rules()}
         num_calls_prev = dict()
 
         if bnd > 0:
@@ -397,18 +405,18 @@ class InputGenerator:
         else:
             code = f'generator {typ} {typ}_gen() {{\n'
         code += '\tint t = ??;\n'
-        
+
         for n, e in enumerate(exprlist):
             num_calls = self.__count_generator_calls(cxt, e)
             code += self.__subcall_gen_example(cxt, num_calls_prev, num_calls)
             num_calls_prev = max_dict(num_calls_prev, num_calls)
 
-            cxt_init = {k:0 for k in cxt.keys()}
+            cxt_init = {k: 0 for k in cxt.keys()}
             _, e_code, e_out = self.__expr_to_code(cxt_init, e, typ)
 
             if (n + 1 == len(exprlist)):
                 code += e_code
-                code += f'\treturn {e_out};\n'            
+                code += f'\treturn {e_out};\n'
             else:
                 code += f'\tif (t == {n}) {{\n'
                 code += e_code
@@ -417,11 +425,12 @@ class InputGenerator:
 
         code += '}\n'
 
-        return code    
+        return code
 
     def __example_generators(self):
         rules = self.__template.get_example_rules()
-        code = '\n'.join([self.__example_rule_to_code(rule) for rule in rules]) + '\n'
+        code = '\n'.join([self.__example_rule_to_code(rule)
+                         for rule in rules]) + '\n'
 
         return code
 
@@ -435,6 +444,10 @@ class InputGenerator:
         code += self.__neg_examples_synth(neg_must, neg_may)
         code += self.__property_code()
 
+        # print("-------Synthesis Code Begin: -------")
+        # print(code)
+        # print("-------Synthesis Code End: -------\n\n")
+
         return code
 
     def generate_soundness_input(self, phi, lam_functions):
@@ -443,6 +456,10 @@ class InputGenerator:
         code += self.__obtained_property_code(phi)
         code += self.__example_generators()
         code += self.__soundness_code()
+
+        # print("-------Soundness Code Begin: -------")
+        # print(code)
+        # print("-------Soundness Code End: -------\n\n")
 
         return code
 
@@ -456,6 +473,10 @@ class InputGenerator:
         code += self.__property_conj_code(phi_list)
         code += self.__example_generators()
         code += self.__precision_code()
+
+        # print("-------Precision Code Begin: -------")
+        # print(code)
+        # print("-------Precision Code End: -------\n\n")
 
         return code
 
